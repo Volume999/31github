@@ -16,7 +16,7 @@ class Constants:
         self.max_letters = 0
         self.max_uppercase = 0
         self.max_lowercase = 0
-        self.password_count = 1
+        self.password_count = 3
 
 # CONSTANTS = {
 #     "length": 16,
@@ -53,7 +53,7 @@ def main():
     if not validate_input():
         pass
     alphabet = string.ascii_letters + string.digits
-    special_chars = string.punctuation
+    special_chars = "!()-.?[]_~;:#$%^&*+=@"
     bag = alphabet + special_chars
     constants = Constants()
     passwords = []
