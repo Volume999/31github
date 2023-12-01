@@ -4,6 +4,9 @@ import json
 import string
 import secrets
 import argparse
+from icecream import ic
+
+ic.disable()
 
 # OUTPUT EXAMPLE
 
@@ -37,15 +40,11 @@ class Constants:
                 self.min_digits = int(args.min_digits) if args.min_digits != "_" else self.min_digits
                 self.min_letters = int(args.min_letters) if args.min_letters != "_" else self.min_letters
             except ValueError as e:
-                # TODO: Handle this error
-                # print(e)
-                pass
-        try:
-            self.validate()
-        except Exception as e:
-            # TODO: Handle this error
-            # print(e)
-            pass
+                ic(e)
+                raise Exception("Input must be positive integers or _")
+        err = self.validate()
+        if err:
+            raise Exception(err)
     
     def to_dict(self):
         return {
@@ -68,16 +67,25 @@ class Constants:
             return "Minimum length is greater than maximum length"
         if self.length < min_length:
             self.length = random.randint(min_length, self.max_length)
+        if self.length > self.max_length:
+            return "Specified length is greater than maximum length"
+        return None
 
 def validate_password(password, constants):
     return True
 
-parser = argparse.ArgumentParser(description="Generate random passwords")
-# parser.add_argument("-l", "--length", type=int, help="Length of the password", default=None, required=False)
-# parser.add_argument("-md", "--min-digits", type=int, help="Minimum number of digits", default=None, required=False)
-# parser.add_argument("-ml", "--min-letters", type=int, help="Minimum number of letters", default=None, required=False)
-# parser.add_argument("-msc", "--min-special-chars", type=int, help="Minimum number of special characters", default=None, required=False)
+def wrap_error(error):
+    return {
+        "items": [
+            {
+                "title": "Error",
+                "subtitle": error,
+            }   
+        ]
+    }
 
+parser = argparse.ArgumentParser(description="Generate random passwords")
+parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
 parser.add_argument("length", type=str, help="Length of the password", default="_", nargs="?")
 parser.add_argument("min_digits", type=str, help="Minimum number of digits", default="_", nargs="?" )
 parser.add_argument("min_letters", type=str, help="Minimum number of letters", default="_", nargs="?")
@@ -87,7 +95,16 @@ parser.add_argument("min_special_chars", type=str, help="Minimum number of speci
 def main():
     # args = parser.parse_args()
     args = parser.parse_args()
-    constants = Constants(args)
+    if args.debug:
+        ic.enable()
+    ic("Debug mode enabled")
+    ic(args)
+    try:
+        constants = Constants(args)
+    except Exception as e:
+        ic(e)
+        sys.stdout.write(json.dumps(wrap_error(str(e))))
+        return
     # print(constants.to_dict())
     # error = validate_input(constants)
     # if error:
