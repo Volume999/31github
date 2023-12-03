@@ -8,26 +8,13 @@ from icecream import ic
 
 ic.disable()
 
-# OUTPUT EXAMPLE
-
-# result = {"items": [
-#     {
-#         "uid": "desktop",
-#         "type": "file",
-#         "title": "Desktop",
-#         "subtitle": "~/Desktop",
-#         "arg": "Hello!",
-#         "autocomplete": "Desktop",
-#     }
-# ]}  
-
 ALPHABET = string.ascii_letters + string.digits
 SPECIALCHARS = "!()-.?[]_~;:#$%^&*+=@"
 BAG = ALPHABET + SPECIALCHARS
 
 class Constants:
     def __init__(self, args=None):
-        self.length = 16
+        self.length = None
         self.min_special_chars = 1
         self.min_digits = 1
         self.min_letters = 1
@@ -65,14 +52,41 @@ class Constants:
         
         if min_length > self.max_length:
             return "Minimum length is greater than maximum length"
-        if self.length < min_length:
+        if self.length is not None and self.length < min_length:
+            return "Specified length is less than minimum length"
+        if self.length is None or self.length < min_length:
             self.length = random.randint(min_length, self.max_length)
         if self.length > self.max_length:
             return "Specified length is greater than maximum length"
         return None
 
 def validate_password(password, constants):
-    return True
+    length = len(password)
+    special_chars = len(list(filter(lambda x: x in SPECIALCHARS, password)))
+    digits = len(list(filter(lambda x: x in string.digits, password)))
+    letters = len(list(filter(lambda x: x in string.ascii_letters, password)))
+    ic(length, special_chars, digits, letters)
+    if length == constants.length and \
+        special_chars >= constants.min_special_chars and \
+        digits >= constants.min_digits and \
+        letters >= constants.min_letters:
+        return True
+    return False
+
+def generate_password(constants):
+    password = []
+    for _ in range(constants.min_letters):
+        password.append(random.choice(string.ascii_letters))
+    for _ in range(constants.min_digits):
+        password.append(random.choice(string.digits))
+    for _ in range(constants.min_special_chars):
+        password.append(random.choice(SPECIALCHARS))
+    for _ in range(constants.length - len(password)):
+        password.append(random.choice(BAG))
+    random.shuffle(password)
+    if (ic(validate_password(password, constants))) == True:
+        return password
+    return generate_password(constants)
 
 def wrap_error(error):
     return {
@@ -93,7 +107,6 @@ parser.add_argument("min_special_chars", type=str, help="Minimum number of speci
 
 
 def main():
-    # args = parser.parse_args()
     args = parser.parse_args()
     if args.debug:
         ic.enable()
@@ -105,20 +118,11 @@ def main():
         ic(e)
         sys.stdout.write(json.dumps(wrap_error(str(e))))
         return
-    # print(constants.to_dict())
-    # error = validate_input(constants)
-    # if error:
-    #     result = {"items": [
-    #         {
-    #             "title": "Error",
-    #             "subtitle": error,
-    #         }   
-    #     ]}
-    passwords = []
+    ic(constants.to_dict())
+    passwords = set()
     while len(passwords) < constants.password_count:
-        password = ''.join(secrets.choice(BAG) for i in range(constants.length))
-        if (validate_password(password, constants)) == True:
-            passwords.append(password)
+        password = generate_password(constants)
+        passwords.add("".join(password))
     results = []
     for i, password in enumerate(passwords):
         results.append({
