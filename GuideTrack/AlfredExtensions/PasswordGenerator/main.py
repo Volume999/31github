@@ -30,6 +30,7 @@ class Constants:
                 ic(e)
                 raise Exception("Input must be positive integers or _")
         err = self.validate()
+        ic(err)
         if err:
             raise Exception(err)
     
@@ -43,7 +44,7 @@ class Constants:
         }
     
     def validate(self):
-        if any(map(lambda x: x < 0, self.to_dict().values())):
+        if any(map(lambda x: isinstance(x, int) and x < 0, self.to_dict().values())):
             return "Negative values are not allowed"
         
         min_length = self.min_special_chars + \
@@ -52,10 +53,10 @@ class Constants:
         
         if min_length > self.max_length:
             return "Minimum length is greater than maximum length"
-        if self.length is not None and self.length < min_length:
-            return "Specified length is less than minimum length"
-        if self.length is None or self.length < min_length:
+        if self.length is None:
             self.length = random.randint(min_length, self.max_length)
+        if self.length < min_length:
+            return "Specified length is less than minimum length"
         if self.length > self.max_length:
             return "Specified length is greater than maximum length"
         return None
