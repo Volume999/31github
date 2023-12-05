@@ -14,6 +14,7 @@ BAG = ALPHABET + SPECIALCHARS
 
 class Constants:
     def __init__(self, args=None):
+        self.parameters = args.parameters
         self.length = None
         self.min_special_chars = 1
         self.min_digits = 1
@@ -36,6 +37,7 @@ class Constants:
     
     def to_dict(self):
         return {
+            "parameters": self.parameters,
             "length": self.length,
             "min_special_chars": self.min_special_chars,
             "min_digits": self.min_digits,
@@ -77,13 +79,13 @@ def validate_password(password, constants):
 def generate_password(constants):
     password = []
     for _ in range(constants.min_letters):
-        password.append(random.choice(string.ascii_letters))
+        password.append(secrets.choice(string.ascii_letters))
     for _ in range(constants.min_digits):
-        password.append(random.choice(string.digits))
+        password.append(secrets.choice(string.digits))
     for _ in range(constants.min_special_chars):
-        password.append(random.choice(SPECIALCHARS))
+        password.append(secrets.choice(SPECIALCHARS))
     for _ in range(constants.length - len(password)):
-        password.append(random.choice(BAG))
+        password.append(secrets.choice(BAG))
     random.shuffle(password)
     if (ic(validate_password(password, constants))) == True:
         return password
@@ -101,17 +103,26 @@ def wrap_error(error):
 
 parser = argparse.ArgumentParser(description="Generate random passwords")
 parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
-parser.add_argument("length", type=str, help="Length of the password", default="_", nargs="?")
-parser.add_argument("min_digits", type=str, help="Minimum number of digits", default="_", nargs="?" )
-parser.add_argument("min_letters", type=str, help="Minimum number of letters", default="_", nargs="?")
-parser.add_argument("min_special_chars", type=str, help="Minimum number of special characters", default="_", nargs="?")
+parser.add_argument("parameters", type=str, help="Parameters", default="_", nargs="?")
+parser.add_argument("--length", type=str, help="Length of the password", default="_", nargs="?")
+parser.add_argument("--min_digits", type=str, help="Minimum number of digits", default="_", nargs="?" )
+parser.add_argument("--min_letters", type=str, help="Minimum number of letters", default="_", nargs="?")
+parser.add_argument("--min_special_chars", type=str, help="Minimum number of special characters", default="_", nargs="?")
+
+def parse_parameters():
+    args = parser.parse_args()
+    params = args.parameters.strip().split(" ")
+    while len(params) < 4:
+        params.append("_")
+    args.length, args.min_digits, args.min_letters, args.min_special_chars = params
+    return args
 
 
 def main():
-    args = parser.parse_args()
+    args = parse_parameters()
     if args.debug:
         ic.enable()
-    ic("Debug mode enabled")
+        ic("Debug mode enabled")
     ic(args)
     try:
         constants = Constants(args)
