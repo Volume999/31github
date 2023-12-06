@@ -30,10 +30,7 @@ class Constants:
             except ValueError as e:
                 ic(e)
                 raise Exception("Input must be positive integers or _")
-        err = self.validate()
-        ic(err)
-        if err:
-            raise Exception(err)
+        ic(self.validate())
     
     def to_dict(self):
         return {
@@ -47,20 +44,20 @@ class Constants:
     
     def validate(self):
         if any(map(lambda x: isinstance(x, int) and x < 0, self.to_dict().values())):
-            return "Negative values are not allowed"
+            raise ValueError("Negative values are not allowed")
         
         min_length = self.min_special_chars + \
             self.min_digits + \
             self.min_letters
         
         if min_length > self.max_length:
-            return "Minimum length is greater than maximum length"
+            raise ValueError("Minimum length is greater than maximum length")
         if self.length is None:
             self.length = random.randint(min_length, self.max_length)
         if self.length < min_length:
-            return "Specified length is less than minimum length"
+            raise ValueError("Specified length is less than minimum length")
         if self.length > self.max_length:
-            return "Specified length is greater than maximum length"
+            raise ValueError("Specified length is greater than maximum length")
         return None
 
 def validate_password(password, constants):
@@ -101,6 +98,17 @@ def wrap_error(error):
         ]
     }
 
+def wrap_results(passwords):
+    results = []
+    for i, password in enumerate(passwords):
+        results.append({
+            "arg": password,
+            "title": password,
+            "subtitle": f"Password {i+1}"
+        })
+    result = {"items": results}
+    return result
+
 parser = argparse.ArgumentParser(description="Generate random passwords")
 parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
 parser.add_argument("parameters", type=str, help="Parameters", default="_", nargs="?")
@@ -119,31 +127,22 @@ def parse_parameters():
 
 
 def main():
-    args = parse_parameters()
-    if args.debug:
-        ic.enable()
-        ic("Debug mode enabled")
-    ic(args)
     try:
+        args = parse_parameters()
+        if args.debug:
+            ic.enable()
+            ic("Debug mode enabled")
+        ic(args)
         constants = Constants(args)
+        ic(constants.to_dict())
+        passwords = set()
+        while len(passwords) < constants.password_count:
+            password = generate_password(constants)
+            passwords.add("".join(password))
+        sys.stdout.write(json.dumps(wrap_results(passwords)))
     except Exception as e:
-        ic(e)
-        sys.stdout.write(json.dumps(wrap_error(str(e))))
-        return
-    ic(constants.to_dict())
-    passwords = set()
-    while len(passwords) < constants.password_count:
-        password = generate_password(constants)
-        passwords.add("".join(password))
-    results = []
-    for i, password in enumerate(passwords):
-        results.append({
-            "arg": password,
-            "title": password,
-            "subtitle": f"Password {i+1}"
-        })
-    result = {"items": results}
-    sys.stdout.write(json.dumps(result))
+            ic(e)
+            sys.stdout.write(json.dumps(wrap_error(str(e))))
 
 if __name__ == "__main__":
     main()
