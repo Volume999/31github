@@ -4,9 +4,12 @@ import json
 import string
 import secrets
 import argparse
+import os
+from dotenv import load_dotenv
 from icecream import ic
 
 ic.disable()
+load_dotenv()
 
 ALPHABET = string.ascii_letters + string.digits
 SPECIALCHARS = "!()-.?[]_~;:#$%^&*+=@"
@@ -21,6 +24,8 @@ class Constants:
         self.min_letters = 1
         self.max_length = 64
         self.password_count = 3
+
+    def read_args(self, args):
         if args:
             try:
                 self.length = int(args.length) if args.length != "_" else self.length
@@ -32,6 +37,18 @@ class Constants:
                 raise Exception("Input must be positive integers or _")
         ic(self.validate())
     
+    def read_env_vars(self, env_vars):
+        if env_vars:
+            try:
+                self.length = int(env_vars['length']) if env_vars['length'] else self.length
+                self.min_special_chars = int(env_vars['min_special_chars']) if env_vars['min_special_chars'] else self.min_special_chars
+                self.min_digits = int(env_vars['min_digits']) if env_vars['min_digits'] else self.min_digits
+                self.min_letters = int(env_vars['min_letters']) if env_vars['min_letters'] else self.min_letters
+            except ValueError as e:
+                ic(e)
+                raise Exception("Input must be positive integers or _")
+        ic(self.validate())
+
     def to_dict(self):
         return {
             "parameters": self.parameters,
@@ -104,7 +121,7 @@ def wrap_results(passwords):
         results.append({
             "arg": password,
             "title": password,
-            "subtitle": f"Password {i+1}"
+            "subtitle": f"Press Enter to copy password {i+1}"
         })
     result = {"items": results}
     return result
@@ -125,15 +142,27 @@ def parse_parameters():
     args.length, args.min_digits, args.min_letters, args.min_special_chars = params
     return args
 
+def parse_env_vars():
+    env_vars = {}
+    env_vars['length'] = os.environ.get('length', None)
+    env_vars['min_digits'] = os.environ.get('min_digits', None)
+    env_vars['min_letters'] = os.environ.get('min_letters', None)
+    env_vars['min_special_chars'] = os.environ.get('min_special_chars', None)
+    return env_vars
+
 
 def main():
+    # TODO: env variables
     try:
         args = parse_parameters()
         if args.debug:
             ic.enable()
             ic("Debug mode enabled")
+        env_vars = ic(parse_env_vars())
         ic(args)
         constants = Constants(args)
+        constants.read_env_vars(env_vars)
+        constants.read_args(args)
         ic(constants.to_dict())
         passwords = set()
         while len(passwords) < constants.password_count:
