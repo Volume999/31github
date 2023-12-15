@@ -18,3 +18,11 @@ Hello world, arithmetics, strings, variables
 ## Day 3
 
 The guide is very basic and kind of boring so I went my own way.
+
+## Day 3 - Day 15
+
+I was doing the Alfred Extension - Password Generator
+
+## Day 16 - Day 23
+
+I was doing Advent of Code
