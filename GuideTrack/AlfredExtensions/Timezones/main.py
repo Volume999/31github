@@ -11,6 +11,14 @@ from icecream import ic
 ic.disable()
 load_dotenv()
 
+# Examples:
+# I am not sure if keyword is needed but let's try with it first
+# (tz) {datetime/time/date} (from)* {timezone} (to)* {timezone} - Straight converter
+# (tz) {datetime/time/date} in {timezone} - Convert from local timezone to another
+# (tz) (datetime/time/date) from {timezone} - Convert from another timezone to local
+# (tz) (datetime/time/date) (+,-) (datetime/time/date) - Find time difference between 
+
+
 def wrap_error(error):
     return {
         "items": [
