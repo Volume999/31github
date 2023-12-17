@@ -41,17 +41,22 @@ def wrap_results(passwords):
     return result
 
 parser = argparse.ArgumentParser(description="Timezone converter")
+parser.add_argument("query", type=str, help="Query to parse")
 
-def parse_parameters():
+def parse_parameters(query):
     pass
 
 def parse_env_vars():
     pass 
 
+def perform_operation(operation):
+    pass
 
 def main():
-    # TODO: env variables
-    pass
+    args = ic(parser.parse_args())
+    operations = parse_parameters(args.query)
+    results = map(perform_operation, operations)
+    print(json.dumps(wrap_results(results)))
 
 if __name__ == "__main__":
     main()
