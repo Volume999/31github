@@ -14,8 +14,11 @@ load_dotenv()
 # Examples:
 # I am not sure if keyword is needed but let's try with it first
 # (tz) {datetime/time/date} (from)* {timezone} (to)* {timezone} - Straight converter
+# 01-01-2001 12:55 PM from CET to ET
 # (tz) {datetime/time/date} in {timezone} - Convert from local timezone to another
+# 13:20 in CET
 # (tz) (datetime/time/date) from {timezone} - Convert from another timezone to local
+# 13:20 from CET
 # (tz) (datetime/time/date) (+,-) (datetime/time/date) - Find time difference between 
 
 
@@ -44,7 +47,8 @@ parser = argparse.ArgumentParser(description="Timezone converter")
 parser.add_argument("query", type=str, help="Query to parse")
 
 def parse_parameters(query):
-    pass
+    convert_pattern = r"(?P<datetime>[\d\-\:\s\w]+)\s+(?P<op>in|from)\s+(?P<timezone1>[\w\/]+)\s*(?:(?:to)*\s+(?P<timezone2>[\w\/]+))?"
+    difference_pattern = r"(?P<datetime1>[\d\-\:\s\w]+)\s+(?P<op>[+,-])\s+(?P<datetime2>[\d\-\:\s\w]+)"
 
 def parse_env_vars():
     pass 
