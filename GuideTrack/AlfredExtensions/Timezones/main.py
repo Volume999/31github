@@ -60,9 +60,9 @@ parser = argparse.ArgumentParser(description="Timezone converter")
 parser.add_argument("query", type=str, help="Query to parse")
 
 def parse_parameters(query):
-    convert_pattern = r"(?P<datetime>[\d\-\:\s\w]+)\s+(?P<op>in|from)\s+(?P<timezone1>[\w\/]+)\s*(?:(?:to)*\s+(?P<timezone2>[\w\/]+))?"
+    convert_pattern = r"(?P<date>\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}\s+)?(?P<time>\d{1,2}:\d{1,2}\s*(?P<part>AM|PM)?\s+)?(?P<srctz>(:?(:?From|from|in)\s+)?\w+\s+)?(:?to\s+|To\s+)?(?P<dsttz>\w+\s*)?"
     difference_pattern = r"(?P<datetime1>[\d\-\:\s\w]+)\s+(?P<op>[+,-])\s+(?P<datetime2>[\d\-\:\s\w]+)"
-
+    ic(query)
     convert_match = ic(re.match(convert_pattern, query))
     if convert_match:
         ic(convert_match.groupdict())
@@ -85,14 +85,18 @@ def main():
 
 def test():
     # Test regex patterns
-    queries = [
+    conversion_queries = [
         "01-01-2001 12:55 PM from CET to ET",
         "13:20 in CET",
         "13:20 from CET",
+        "2001-12-01 23:00 PM CPH to China",
+    ]
+
+    difference_queries = [
         "13:20 + 14:20"
     ]
 
-    for query in queries:
+    for query in conversion_queries:
         res = parse_parameters(query)
     
     # Test converter 
