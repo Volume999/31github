@@ -7,6 +7,7 @@ import argparse
 import os
 from dotenv import load_dotenv
 from icecream import ic
+from enum import Enum
 import re
 
 # MODE = "RUN"
@@ -23,6 +24,28 @@ class TimezoneConverter:
 
     def convert(self, timezone2):
         pass
+
+class QueryType(Enum):
+    CONVERSION = 1
+    DIFFERENCE = 2
+
+class ConversionQuery:
+    datetime = None
+    src_timezone = None
+    dst_timezone = None
+
+    def __init__(self, datetime, src_timezone, dst_timezone):
+        self.datetime = datetime
+        self.src_timezone = src_timezone
+        self.dst_timezone = dst_timezone
+
+class DifferenceQuery:
+    src_datetime = None
+    add_datetime = None
+
+    def __init__(self, src_datetime, add_datetime):
+        self.src_datetime = src_datetime
+        self.add_datetime = add_datetime
 
 # Examples:
 # I am not sure if keyword is needed but let's try with it first
@@ -65,11 +88,13 @@ def parse_parameters(query):
     ic(query)
     convert_match = ic(re.match(convert_pattern, query))
     if convert_match:
-        ic(convert_match.groupdict())
+        res = ic(convert_match.groupdict())
+        return res
     difference_match = ic(re.match(difference_pattern, query))
     if difference_match:
-        ic(difference_match.groupdict())
-    return []
+        res = ic(difference_match.groupdict())
+        return res
+    raise Exception("Invalid query")
 
 def parse_env_vars():
     pass 
@@ -78,10 +103,13 @@ def perform_operation(operation):
     pass
 
 def main():
-    args = ic(parser.parse_args())
-    operations = parse_parameters(args.query)
-    results = map(perform_operation, operations)
-    print(json.dumps(wrap_results(results)))
+    try:
+        args = ic(parser.parse_args())
+        operations = parse_parameters(args.query)
+        results = map(perform_operation, operations)
+        print(json.dumps(wrap_results(results)))
+    except Exception as e:
+        print(json.dumps(wrap_error(str(e))))
 
 def test():
     # Test regex patterns
