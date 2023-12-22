@@ -83,16 +83,17 @@ parser = argparse.ArgumentParser(description="Timezone converter")
 parser.add_argument("query", type=str, help="Query to parse")
 
 def parse_parameters(query):
-    convert_pattern = r"(?P<date>\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}\s+)?(?P<time>\d{1,2}:\d{1,2}\s*(?P<part>AM|PM)?\s+)?(?P<srctz>(:?(:?From|from|in)\s+)?\w+\s+)?(:?to\s+|To\s+)?(?P<dsttz>\w+\s*)?"
+    convert_pattern = r"((?P<date>\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4})\s*)?((?P<time>\d{1,2}:\d{1,2})\s*(?P<part>AM|PM)?\s*)?((?:(?:From|from|in)\s+)?(?P<srctz>\w+)\s*)?((:?to\s+|To\s+)?(?P<dsttz>\w+)\s*)?"
     difference_pattern = r"(?P<datetime1>[\d\-\:\s\w]+)\s+(?P<op>[+,-])\s+(?P<datetime2>[\d\-\:\s\w]+)"
     ic(query)
+    res = None
     convert_match = ic(re.match(convert_pattern, query))
     if convert_match:
         res = ic(convert_match.groupdict())
-        return res
     difference_match = ic(re.match(difference_pattern, query))
     if difference_match:
         res = ic(difference_match.groupdict())
+    if res:
         return res
     raise Exception("Invalid query")
 
@@ -121,10 +122,20 @@ def test():
     ]
 
     difference_queries = [
-        "13:20 + 14:20"
+        "13:20 + 14:20",
+        "2023-02-10 - 10 days",
+        "2023-01-01 + 1 month",
+        "13:20:15 + 20 minutes"
+    ]
+
+    combined_queries = [
+        "13:20"
     ]
 
     for query in conversion_queries:
+        res = parse_parameters(query)
+    
+    for query in difference_queries:
         res = parse_parameters(query)
     
     # Test converter 
