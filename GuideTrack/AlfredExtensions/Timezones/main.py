@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from icecream import ic
 from enum import Enum
 import re
+from datetime import datetime, timedelta
 
 # MODE = "RUN"
 MODE = "TEST"
@@ -82,17 +83,56 @@ def wrap_results(passwords):
 parser = argparse.ArgumentParser(description="Timezone converter")
 parser.add_argument("query", type=str, help="Query to parse")
 
+
+def parse_datetime(date, time, part):
+    resDate = None
+    if date:
+        for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"]:
+            try:
+                resDate = datetime.strptime(date, fmt)
+                break
+            except:
+                pass
+    resTime = None
+    if time:
+        if part:
+            resTime = datetime.strptime(time + part, "%I:%M%p")
+        else:
+            resTime = datetime.strptime(time, "%H:%M")
+    ic(resDate, resTime, part)
+    if resDate and resTime:
+        dt = datetime.combine(resDate, resTime.time())
+    elif resDate:
+        dt = resDate
+    elif resTime:
+        dt = resTime
+    else:
+        raise ValueError(f"Invalid date/time values: {resDate}, {resTime}, {part}")
+    return dt
+
 def parse_parameters(query):
     convert_pattern = r"((?P<date>\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4})\s*)?((?P<time>\d{1,2}:\d{1,2})\s*(?P<part>AM|PM)?\s*)?((?:(?:From|from|in)\s+)?(?P<srctz>\w+)\s*)?((:?to\s+|To\s+)?(?P<dsttz>\w+)\s*)?"
     difference_pattern = r"(?P<datetime1>[\d\-\:\s\w]+)\s+(?P<op>[+,-])\s+(?P<datetime2>[\d\-\:\s\w]+)"
     ic(query)
-    res = None
+    res = [] 
     convert_match = ic(re.match(convert_pattern, query))
     if convert_match:
-        res = ic(convert_match.groupdict())
+        q = ic(convert_match.groupdict())
+        if not q['srctz'] and not q['dsttz']:
+            pass
+        else:
+            if not q['date'] and not q['time']:
+                dt = datetime.now()
+            else:
+                dt = parse_datetime(q['date'], q['time'], q['part'])
+            
+            ic(dt)
+
+            res.append(ConversionQuery(dt, q['srctz'], q['dsttz']))
+
     difference_match = ic(re.match(difference_pattern, query))
     if difference_match:
-        res = ic(difference_match.groupdict())
+        res.append(ic(difference_match.groupdict()))
     if res:
         return res
     raise Exception("Invalid query")
@@ -118,7 +158,7 @@ def test():
         "01-01-2001 12:55 PM from CET to ET",
         "13:20 in CET",
         "13:20 from CET",
-        "2001-12-01 23:00 PM CPH to China",
+        "2001-12-01 10:00 PM CPH to China",
     ]
 
     difference_queries = [
