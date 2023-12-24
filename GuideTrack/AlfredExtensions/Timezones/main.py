@@ -10,6 +10,11 @@ from icecream import ic
 from enum import Enum
 import re
 from datetime import datetime, timedelta
+import pytz
+from tzlocal import get_localzone
+from zoneinfo import ZoneInfo, available_timezones
+import collections
+import pycountry
 
 # MODE = "RUN"
 MODE = "TEST"
@@ -17,18 +22,6 @@ DEBUG = True
 
 ic.disable()
 load_dotenv()
-
-class TimezoneConverter:
-    def __init__(self, datetime, timezone1):
-        self.datetime = datetime
-        self.timezone1 = timezone1
-
-    def convert(self, timezone2):
-        pass
-
-class QueryType(Enum):
-    CONVERSION = 1
-    DIFFERENCE = 2
 
 class ConversionQuery:
     datetime = None
@@ -39,14 +32,34 @@ class ConversionQuery:
         self.datetime = datetime
         self.src_timezone = src_timezone
         self.dst_timezone = dst_timezone
+    
+    def resolve(self):
+        ic(self.datetime, self.src_timezone, self.dst_timezone)
+        ic("Datetime original timezone:", self.datetime.tzinfo)
+        aware = self.datetime.replace(tzinfo=pytz.timezone(self.src_timezone))
+        ic("Source timezone aware", self.datetime.tzinfo)
+        converted = aware.astimezone(pytz.timezone(self.dst_timezone))
+        ic("Destination timezone aware", self.datetime.tzinfo)
+        return converted
 
-class DifferenceQuery:
-    src_datetime = None
-    add_datetime = None
+def get_timezone_codes():
+    tzones = collections.defaultdict(set)
+    abbrevs = collections.defaultdict(set)
 
-    def __init__(self, src_datetime, add_datetime):
-        self.src_datetime = src_datetime
-        self.add_datetime = add_datetime
+    for name in pytz.all_timezones:
+        tzone = pytz.timezone(name)
+        for utcoffset, dstoffset, tzabbrev in getattr(
+                tzone, '_transition_info', [[None, None, datetime.now(tzone).tzname()]]):
+            tzones[tzabbrev].add(name)
+            abbrevs[name].add(tzabbrev)
+    return tzones, abbrevs
+
+def get_country_from_country_code(code):
+    return pycountry.countries.get(alpha_2=code)
+
+def get_timezone_from_country(code):
+    country_timezones = pytz.country_timezones
+    return country_timezones(code)
 
 # Examples:
 # I am not sure if keyword is needed but let's try with it first
@@ -85,6 +98,8 @@ parser.add_argument("query", type=str, help="Query to parse")
 
 
 def parse_datetime(date, time, part):
+    if not date and not time:
+        return datetime.now()
     resDate = None
     if date:
         for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"]:
@@ -93,12 +108,17 @@ def parse_datetime(date, time, part):
                 break
             except:
                 pass
+    if date and not resDate:
+        raise ValueError(f"Invalid date format: {date}")
     resTime = None
     if time:
-        if part:
-            resTime = datetime.strptime(time + part, "%I:%M%p")
-        else:
-            resTime = datetime.strptime(time, "%H:%M")
+        try:
+            if part:
+                resTime = datetime.strptime(time + part, "%I:%M%p")
+            else:
+                resTime = datetime.strptime(time, "%H:%M")
+        except:
+            raise ValueError(f"Invalid time format: {time}")
     ic(resDate, resTime, part)
     if resDate and resTime:
         dt = datetime.combine(resDate, resTime.time())
@@ -110,29 +130,29 @@ def parse_datetime(date, time, part):
         raise ValueError(f"Invalid date/time values: {resDate}, {resTime}, {part}")
     return dt
 
+def parse_timezones(srctz, dsttz):
+    if not srctz and not dsttz:
+        return None, None
+    if not srctz:
+        srctz = get_local_timezone()
+    if not dsttz:
+        dsttz = get_local_timezone()
+    return srctz, dsttz
+
+def get_local_timezone():
+    return get_localzone()
+
 def parse_parameters(query):
     convert_pattern = r"((?P<date>\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4})\s*)?((?P<time>\d{1,2}:\d{1,2})\s*(?P<part>AM|PM)?\s*)?((?:(?:From|from|in)\s+)?(?P<srctz>\w+)\s*)?((:?to\s+|To\s+)?(?P<dsttz>\w+)\s*)?"
-    difference_pattern = r"(?P<datetime1>[\d\-\:\s\w]+)\s+(?P<op>[+,-])\s+(?P<datetime2>[\d\-\:\s\w]+)"
     ic(query)
     res = [] 
     convert_match = ic(re.match(convert_pattern, query))
     if convert_match:
         q = ic(convert_match.groupdict())
-        if not q['srctz'] and not q['dsttz']:
-            pass
-        else:
-            if not q['date'] and not q['time']:
-                dt = datetime.now()
-            else:
-                dt = parse_datetime(q['date'], q['time'], q['part'])
-            
-            ic(dt)
-
-            res.append(ConversionQuery(dt, q['srctz'], q['dsttz']))
-
-    difference_match = ic(re.match(difference_pattern, query))
-    if difference_match:
-        res.append(ic(difference_match.groupdict()))
+        srctz, dsttz = parse_timezones(q['srctz'], q['dsttz'])
+        dt = parse_datetime(q['date'], q['time'], q['part'])
+        ic(dt)
+        res.append(ConversionQuery(dt, srctz, dsttz))
     if res:
         return res
     raise Exception("Invalid query")
@@ -147,7 +167,8 @@ def main():
     try:
         args = ic(parser.parse_args())
         operations = parse_parameters(args.query)
-        results = map(perform_operation, operations)
+        results = map(lambda k: k.resolve(), operations)
+        ic(results)
         print(json.dumps(wrap_results(results)))
     except Exception as e:
         print(json.dumps(wrap_error(str(e))))
@@ -157,32 +178,25 @@ def test():
     conversion_queries = [
         "01-01-2001 12:55 PM from CET to ET",
         "13:20 in CET",
-        "13:20 from CET",
-        "2001-12-01 10:00 PM CPH to China",
-    ]
-
-    difference_queries = [
-        "13:20 + 14:20",
-        "2023-02-10 - 10 days",
-        "2023-01-01 + 1 month",
-        "13:20:15 + 20 minutes"
-    ]
-
-    combined_queries = [
-        "13:20"
+        "13:20 from CET"
+        # "2001-12-01 10:00 PM CPH to China",
     ]
 
     for query in conversion_queries:
         res = parse_parameters(query)
     
-    for query in difference_queries:
-        res = parse_parameters(query)
-    
+    timezone_codes = get_timezone_codes()
+    ic(timezone_codes)
+
+    CPH_country = get_country_from_country_code("DK")
+    ic(CPH_country)
+
+    country_timezones = get_timezone_from_country("DK")
+    ic(country_timezones)
     # Test converter 
-    print("Initial time: 01-01-2001 12:55 PM CET")
-    t = TimezoneConverter("01-01-2001 12:55 PM", "CET")
-    print(f"Convert to CET: {t.convert('ET')}")
-    print(f"Convert to UTC: {t.convert('UTC')}")
+    res = map(lambda k: k.resolve(), res)
+    for r in res:
+        print(r)
 
 if __name__ == "__main__":
     if DEBUG:
