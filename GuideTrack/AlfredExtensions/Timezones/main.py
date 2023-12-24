@@ -23,6 +23,40 @@ DEBUG = True
 ic.disable()
 load_dotenv()
 
+class TimezoneService:
+    country_timezones = None
+    timezones = None
+    abbreviations = None
+
+    def __init__(self):
+        self.country_timezones = self.get_country_timezones()
+        self.timezones, self.abbreviations = self.get_timezone_codes()
+
+    def get_timezone_codes():
+        tzones = collections.defaultdict(set)
+        abbrevs = collections.defaultdict(set)
+
+        for name in pytz.all_timezones:
+            tzone = pytz.timezone(name)
+            for utcoffset, dstoffset, tzabbrev in getattr(
+                    tzone, '_transition_info', [[None, None, datetime.now(tzone).tzname()]]):
+                tzones[tzabbrev].add(name)
+                abbrevs[name].add(tzabbrev)
+        return tzones, abbrevs
+    
+    def get_timezone_from_country(code):
+        country_timezones = pytz.country_timezones
+        return country_timezones(code)  
+
+class CountryService:
+    countries = None
+
+    def __init__(self):
+          self.countries = pycountry.countries
+        
+    def get_country_from_code(self, code):
+        return self.countries.get(alpha_2=code)
+    
 class ConversionQuery:
     datetime = None
     src_timezone = None
@@ -42,24 +76,6 @@ class ConversionQuery:
         ic("Destination timezone aware", self.datetime.tzinfo)
         return converted
 
-def get_timezone_codes():
-    tzones = collections.defaultdict(set)
-    abbrevs = collections.defaultdict(set)
-
-    for name in pytz.all_timezones:
-        tzone = pytz.timezone(name)
-        for utcoffset, dstoffset, tzabbrev in getattr(
-                tzone, '_transition_info', [[None, None, datetime.now(tzone).tzname()]]):
-            tzones[tzabbrev].add(name)
-            abbrevs[name].add(tzabbrev)
-    return tzones, abbrevs
-
-def get_country_from_country_code(code):
-    return pycountry.countries.get(alpha_2=code)
-
-def get_timezone_from_country(code):
-    country_timezones = pytz.country_timezones
-    return country_timezones(code)
 
 # Examples:
 # I am not sure if keyword is needed but let's try with it first
@@ -165,8 +181,9 @@ def perform_operation(operation):
 
 def main():
     try:
+        timezone_service = TimezoneService()
         args = ic(parser.parse_args())
-        operations = parse_parameters(args.query)
+        operations = parse_parameters(args.query, timezone_service)
         results = map(lambda k: k.resolve(), operations)
         ic(results)
         print(json.dumps(wrap_results(results)))
@@ -185,14 +202,6 @@ def test():
     for query in conversion_queries:
         res = parse_parameters(query)
     
-    timezone_codes = get_timezone_codes()
-    ic(timezone_codes)
-
-    CPH_country = get_country_from_country_code("DK")
-    ic(CPH_country)
-
-    country_timezones = get_timezone_from_country("DK")
-    ic(country_timezones)
     # Test converter 
     res = map(lambda k: k.resolve(), res)
     for r in res:
