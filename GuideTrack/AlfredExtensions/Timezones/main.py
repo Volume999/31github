@@ -17,7 +17,7 @@ import collections
 import pycountry
 
 # MODE = "RUN"
-MODE = "TEST"
+MODE = "MVP"
 DEBUG = True
 
 ic.disable()
@@ -221,8 +221,13 @@ def test():
     for r in res:
         print(r)
 
+def mvp():
+    res = wrap_results(["2023-01-01 17:55 PM"])
+    print(json.dumps(res))
+
 if __name__ == "__main__":
     if DEBUG:
         ic.enable()
     if MODE == "RUN": main()
     elif MODE == "TEST": test()
+    elif MODE == "MVP": mvp()
