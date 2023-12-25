@@ -48,7 +48,7 @@ class TimezoneService:
         country_timezones = pytz.country_timezones
         return country_timezones(code)  
 
-class CountryService:
+class RegionService:
     countries = None
 
     def __init__(self):
@@ -98,13 +98,12 @@ def wrap_error(error):
         ]
     }
 
-def wrap_results(passwords):
+def wrap_results(outputs):
     results = []
-    for i, password in enumerate(passwords):
+    for i, output in enumerate(outputs):
         results.append({
-            "arg": password,
-            "title": password,
-            "subtitle": f"Press Enter to copy password {i+1}"
+            "arg": output,
+            "title": output,
         })
     result = {"items": results}
     return result
@@ -196,7 +195,22 @@ def test():
         "01-01-2001 12:55 PM from CET to ET",
         "13:20 in CET",
         "13:20 from CET"
-        # "2001-12-01 10:00 PM CPH to China",
+    ]
+
+    conversion_from_contry_queries = [
+        "01-01-2001 12:55 PM from France to Germany",
+        "13:20 from France",
+        "13:20 from France to Germany",
+        "22:00 in Germany",
+        "10:00 PM from Germany to France",
+    ]
+
+    conversion_from_city_queries = [
+        "01-01-2001 12:55 PM from Paris to Berlin",
+        "13:20 from Paris",
+        "13:20 from Paris to Berlin",
+        "22:00 in Berlin",
+        "10:00 PM from Berlin to Paris",
     ]
 
     for query in conversion_queries:
